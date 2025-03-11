@@ -68,7 +68,12 @@ class FirstNN(object):
         #############################################################################
         
         if param_init == 'small_std':
-            pass
+            self.best_params = copy.deepcopy(self.params)    
+            # Training-related hyperparameters
+            self.learning_rate = 1e-3
+            self.batch_size = 200
+            self.num_epoch = 10
+            self.update_rule = 'gd'  # Default to gradient descent
             
         elif param_init == 'ninn_std':
             pass
@@ -179,8 +184,25 @@ class FirstNN(object):
         # and biases. Store the results in the grads dictionary. For example,       #
         # grads['W1'] should store the gradient on W1, and be a matrix of same size #
         #############################################################################
-        
-    
+        N = X.shape[0]
+        z1 = X.dot(self.params['W1']) + self.params['b1']
+        a1 = sigmoid_func(z1) 
+                
+            # Compute the gradient of the loss with respect to the predicted probabilities
+        dprob_scores= prob_scores
+        dprob_scores[np.arange(Y.shape[0]), Y] -= 1  # Subtract 1 for the true class labels
+
+        #Backpropagate the gradient to the parameters for 2nd layer
+        grads['W2'] = np.dot(self.params['W1'].T, dprob_scores) / N
+        grads['b2'] = np.sum(dprob_scores, axis=0) / N
+
+        # Backpropagate to first layer
+        da1 = np.dot(dprob_scores, self.params['W2'].T)
+        dz1 = da1 * a1 * (1 - a1)  # Derivative of the sigmoid function
+
+        grads['W1'] = np.dot(X.T, dz1) / N
+        grads['b1'] = np.sum(dz1, axis=0) / N
+
         #############################################################################
         #                              END OF YOUR CODE                             #
         #############################################################################
@@ -207,9 +229,12 @@ class FirstNN(object):
         # using gradient descent. You'll need to use the gradients stored in    #
         # the grads dictionary defined above.                                   #
         #########################################################################
-        
+        learning_rate = self.learning_rate
         if self.update_rule == 'gd':
-            pass
+            self.params['W1'] -= learning_rate * grads['W1']
+            self.params['b1'] -= learning_rate * grads['b1']
+            self.params['W2'] -= learning_rate * grads['W2']
+            self.params['b2'] -= learning_rate * grads['b2']
             
         elif self.update_rule == 'm_gd':
             pass
@@ -287,6 +312,10 @@ class FirstNN(object):
                 mask = np.random.choice(num_train_data, batch_size)
                 X_batch = X[mask]
                 Y_batch = Y[mask]  
+                
+                
+                
+                
                 #########################################################################
                 #                             END OF YOUR CODE                          #
                 #########################################################################
@@ -404,7 +433,14 @@ class FirstNN(object):
         ###########################################################################
         # TODO: Implement this function; it should be VERY simple!                #
         ###########################################################################
-        pass
+        if best_param:
+            params = self.best_params
+        else:
+            params = self.params
+        
+        prob_scores = self.forword(X)  # Forward pass to get probabilities
+        Y_pred = np.argmax(prob_scores, axis=1)  # Choose the class with the highest score
+        
     
         ###########################################################################
         #                              END OF YOUR CODE                           #
